@@ -47,6 +47,7 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, ...){
   extremes(data) = ext
   estSmoothReg = function(){
 
+    if (h > 1) h = h / length(xcov)
     r = list()
     for (i in eval_at){
 

@@ -3,7 +3,7 @@
 #' The function specifying the trend are not meant to be used outside the formula of the \link{nim} function.
 #'
 #' @param ... The name of the covariate within the nim formula
-#' @param h Width of the smoothing window (bandwidth) as a fraction of the number of the time steps included in the window.
+#' @param h Width of the smoothing window (bandwidth) as a fraction of the number of the time steps included in the window (for code(h <= 1)) or as a number of time-steps (for code(h>1))
 #' @param eval_at Either numerical indices of the time series where to calculate the local regression estimates, all (defaults) or 'all' for evaluation at each time step. The outcome (smoothed parameter) are linearly approximated in order to provide value for each time step.
 #' @param w The kernel function - defaults to Epanechnikov kernel. Could be specified as a function of u: (-Inf, Inf) -> (0, 1), typically with largest values for u = 0.
 #'

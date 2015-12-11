@@ -14,7 +14,7 @@ p(...)
 \arguments{
 \item{...}{The name of the covariate within the nim formula}
 
-\item{h}{Width of the smoothing window (bandwidth) as a fraction of the number of the time steps included in the window.}
+\item{h}{Width of the smoothing window (bandwidth) as a fraction of the number of the time steps included in the window (for code(h <= 1)) or as a number of time-steps (for code(h>1))}
 
 \item{eval_at}{Either numerical indices of the time series where to calculate the local regression estimates, all (defaults) or 'all' for evaluation at each time step. The outcome (smoothed parameter) are linearly approximated in order to provide value for each time step.}
 

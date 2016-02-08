@@ -106,13 +106,34 @@ sample.nim = function(nim, length = 1, type = 'parametric'){
   nfo = model_info(nim)
   out = list()
   obs = attr(nim, 'data')
+  if (nfo$cvrt=='I') obs$I = 1
 
   if (type == 'parametric'){
-    cc = cov(resid(nim, type = 'Normal')[, 2:ncol(obs)])
+    #cc = cov(resid(nim, type = 'Normal')[, 2:ncol(obs)])
+    cc = cov(resid(nim, type = 'Normal')[, attr(obs, 'extremes'), drop = FALSE])
 
     sam = function(...){
       sresid = data.table(rmvnorm(nrow(nim$REG), sigma = cc))
       sresid = data.frame(COV = obs[[nfo$cvrt]], sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))])
+      names(sresid) = c(nfo$cvrt, names(extremes(obs)))#names(obs)
+      extremes(sresid) = attr(obs, 'extremes')
+      m = params2data(nim, sresid)
+      m[, value:=XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
+      res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
+      setnames(res, 'nfo', nfo$cvrt)
+      res
+    }
+  }
+
+  # TDD opravit - zobecnit pro stacionarni model
+  if (type == 'nonparametric'){
+
+    re = data.table(resid(nim, type = 'Gumbel'))
+    setkeyv(re, nfo$cvrt)
+    sam = function(...){
+      sresid = re[J(sample(nfo$cvrt, length(nfo$cvrt), replace = TRUE)), ]
+      sresid$COV = nim$REG$COV
+      sresid = data.frame(sresid)
       names(sresid) = names(obs)
       extremes(sresid) = attr(obs, 'extremes')
       m = params2data(nim, sresid)
@@ -120,37 +141,18 @@ sample.nim = function(nim, length = 1, type = 'parametric'){
       res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
       setnames(res, 'nfo', nfo$cvrt)
       res
-      }
     }
 
-  if (type == 'nonparametric'){
+  }
 
-      re = data.table(resid(nim, type = 'Gumbel'))
-      setkey(re, COV)
-      sam = function(...){
-        sresid = re[J(sample(COV, length(COV), replace = TRUE)), ]
-        sresid$COV = nim$REG$COV
-        sresid = data.frame(sresid)
-        names(sresid) = names(obs)
-        extremes(sresid) = attr(obs, 'extremes')
-        m = params2data(nim, sresid)
-        m[, value:=XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
-        res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
-        setnames(res, 'nfo', nfo$cvrt)
-        res
-      }
-
-    }
-
-    out = mapply(sam, 1:length, SIMPLIFY = FALSE)
-    names(out) = paste0('BSP_', 1:length)
-    out = lapply(out, function(x){
-      x = data.frame(x)
-      extremes(x) = attr(obs, 'extremes')
-      return(x)})
-    out
+  out = mapply(sam, 1:length, SIMPLIFY = FALSE)
+  names(out) = paste0('BSP_', 1:length)
+  out = lapply(out, function(x){
+    x = data.frame(x)
+    extremes(x) = attr(obs, 'extremes')
+    return(x)})
+  out
 }
-
 ad = function(sgv){
   nr = length(sgv)
   u=sort(exp(-exp(-(sgv))))

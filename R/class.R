@@ -55,7 +55,7 @@ extremes = function(...){
 
 extremes.data.frame = function(data){
   if (is.null(attr(data, 'extremes'))) stop('Extremes not specified.')
-  data[, attr(data, 'extremes')]
+  data[, attr(data, 'extremes'), drop = FALSE]
 }
 
 extremes.nim = function(nim){

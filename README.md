@@ -13,8 +13,9 @@ Currently implemented features:
 To be implemented soon:
 - evaluation of critical values for the Anderson-Darling test
 - multicore/parallel support
+- documentation
 
-Other:
+To be implemented later:
 - methods for bandwidth selection
 
 To install the package in R use 

@@ -322,13 +322,14 @@ extremity = function(nim, type = 'fitted', return_period = FALSE){
   d
 }
 
-quantile.nim = function(nim, p = NULL, T = c(2, 5, 10, 50)){
+quantile.nim = function(nim, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
 
   cl = match.call()
   qO = Vectorize(function(p){
-    rg$XI * (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) ))
+    XI * (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) ))
   }  )
 
+  XI = if (at_site == TRUE) (nim$XI) else (1)
   if (is.null(p)) p = 1 - 1 / T
   rg = nim$REG
   rg$G = exp(rg$G)

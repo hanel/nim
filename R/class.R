@@ -156,7 +156,18 @@ sample.default = base::sample
 nims = function(...){
 
   if (all(sapply(list(...), class )=='nim')) {n = structure(list(...), names = as.character(match.call()[1:length(list(...)) + 1]))} else {
-  if (is.list(...)) n = structure(...)}
+    if (is.list(...)) {
+      n = structure(...)
+      if (is.null(names(n)) & length(as.character(match.call()[[2]]) > 1)) {
+        names = as.character(match.call()[[2]])
+        names = names[-1]
+        names(n) = names
+
+        }
+      }
+  }
+
+  if (is.null(names(n)) | all(is.na(names(n)))) names(n) = paste0('n', 1:length(n))
 
   nfo = sapply(n, model_info)
   if (length(unique((nfo['cvrt', ])))!=1) stop('All covariates must have same names.') else (cvrt = nfo[['cvrt', 1]])

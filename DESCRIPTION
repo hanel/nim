@@ -15,5 +15,5 @@ Depends:
     reshape2,
     parallel,
     mvtnorm,
-    Lmoments
+    lmom
 RoxygenNote: 5.0.1

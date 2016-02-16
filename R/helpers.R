@@ -1,13 +1,14 @@
 lgev = function(data,era=0,K=NA){
 
-  require(Lmoments)
+  require(lmom)
 
   mi=vector('numeric',dim(data)[2])
   ga=0
   ks=0
   if (era==0) (era=dim(data)[1])
 
-  L=Lmoments(data[1:era,],4)
+ # L=Lmoments(data[1:era,],4)
+  L = t(apply(data[1:era, ], 2, function(x) samlmu(x, ratios = FALSE)))
   t3=L[,3]/L[,2]
   cc=2/(3+t3)-log(2)/log(3)
   if (is.na(K)) (k=7.8590*cc+2.9554*cc^2) else (k=K)
@@ -18,7 +19,8 @@ lgev = function(data,era=0,K=NA){
   Data=c(data[1:era,])
 
 
-  L=Lmoments(Data,4)
+  #L=Lmoments(Data,4)
+  L=samlmu(unlist(data), ratios = FALSE)
   t3=L[3]/L[2]
   cc=2/(3+t3)-log(2)/log(3)
   if (is.na(K)) (k=7.8590*cc+2.9554*cc^2) else (k=K)

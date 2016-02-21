@@ -8,7 +8,7 @@ lgev = function(data,era=0,K=NA){
   if (era==0) (era=dim(data)[1])
 
  # L=Lmoments(data[1:era,],4)
-  L = t(apply(data[1:era, ], 2, function(x) samlmu(x, ratios = FALSE)))
+  L = t(apply(data[1:era, , drop = FALSE], 2, function(x) samlmu(x, ratios = FALSE)))
   t3=L[,3]/L[,2]
   cc=2/(3+t3)-log(2)/log(3)
   if (is.na(K)) (k=7.8590*cc+2.9554*cc^2) else (k=K)

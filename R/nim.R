@@ -119,7 +119,7 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, ...){
   }
 
   ini = lgev(as.matrix(dmx))
-  THETA = list(XI = ini$location, .xi = function(xpar = list(t = THETA$REG[[1]])){matrix(THETA$XI, nrow = length(xpar$t), ncol = length(THETA$XI), byrow = TRUE)}, REG = data.frame(COV = xcov, XI = 1, G = log(ini$dispersion), K = (ini$shape)))
+  THETA = list(XI = ini$location, .xi = function(xpar = list(t = THETA$REG[[1]])){matrix(THETA$XI, nrow = length(xpar$t), ncol = length(THETA$XI), byrow = TRUE)}, REG = data.frame(COV = unname(xcov), XI = 1, G = unname(log(ini$dispersion)), K = unname(ini$shape)))
   names(THETA$REG)[1] = cvrt
   names(THETA$XI) = names(dmx)
   dev0 = Inf

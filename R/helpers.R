@@ -30,6 +30,8 @@ lgev = function(data,era=0,K=NA){
   sig=a
   ga=sig/mmi
 
+  if(ga<0) ga = sig # more clever solution?
+
   list(location=mi,j.location=mmi,dispersion=ga,shape=ks,scale=sig,Dispersion=GA,Shape=KK)
 }
 

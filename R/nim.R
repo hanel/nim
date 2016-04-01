@@ -133,7 +133,7 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, ...){
    message( '\testimating at-site xi')
 
    for (i in 1:ncol(dmx)){
-     THETA$XI[i] = cffx(data = as.matrix(dmx[, i]), fpar = function(par){cppXI0(p = par, xi = THETA$REG$XI, g = THETA$REG$G, k = THETA$REG$K) }, start = c(THETA$XI[i]), xpar = xcov, method = 'Brent', lower = min(dmx), upper = max(dmx))$estimate
+     THETA$XI[i] = cffx(data = as.matrix(dmx[!is.na(dmx[, i]), i]), fpar = function(par){cppXI0(p = par, xi = THETA$REG$XI, g = THETA$REG$G, k = THETA$REG$K) }, start = c(THETA$XI[i]), xpar = xcov, method = 'Brent', lower = min(dmx, na.rm = TRUE), upper = max(dmx, na.rm =TRUE))$estimate
    }
 
    message( '\testimating regional parameters')

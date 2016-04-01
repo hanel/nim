@@ -142,14 +142,15 @@ double nll_gev(NumericVector par, Function fpar, NumericMatrix data, NumericVect
 
   for (int i = 0; i < data.nrow(); i++){
     for (int j = 0; j < data.ncol(); j++){
-
-      if (scale(i, j) <= 0) {return 1e20;}
-      y = (data(i, j) - loc(i, j)) / scale(i, j);
-      z = 1 + shape(i, j) * y;
-      if (z <= 0) {return 1e20;}
-      if ((fabs(shape(i, j)) < 1e-6)) {n = y + exp(-y);}
-      else {n = (1 + 1 / shape(i, j)) * log(z) + pow(z, (-1 / shape(i, j)));}
-
+      
+      if (NumericMatrix::is_na(data(i, j))) {n = 0;} else {
+        if (scale(i, j) <= 0) {return 1e20;}
+        y = (data(i, j) - loc(i, j)) / scale(i, j);
+        z = 1 + shape(i, j) * y;
+        if (z <= 0) {return 1e20;}
+        if ((fabs(shape(i, j)) < 1e-6)) {n = y + exp(-y);}
+        else {n = (1 + 1 / shape(i, j)) * log(z) + pow(z, (-1 / shape(i, j)));}
+      }
       nll = nll + w[i] * (n + log(scale(i, j)));
     }
   }

@@ -44,6 +44,7 @@ nll.gev = function(par,fpar,xpar,dat=NA,opar=NA,theta=NA,narm=T) {
   shape <- pmat$shape
   if(any(scale <= 0)) return(1e+20)
   gumbel <- (abs(shape) < 1e-06)
+  #browser()
   y <- (data - loc) / scale
   z <- 1 + shape * y
   if(any(z <= 0, na.rm = TRUE)) return(1e+20)

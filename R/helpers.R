@@ -158,7 +158,9 @@ sample.nim = function(nim, length = 1, type = 'parametric'){
     return(x)})
   out
 }
+
 ad = function(sgv){
+  sgv = sgv[!is.na(sgv)]
   nr = length(sgv)
   u=sort(exp(-exp(-(sgv))))
   -nr-1/nr*sum((2*1:nr-1)*log(u)+(2*nr-2*1:nr+1)*log(1-u))

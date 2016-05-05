@@ -159,8 +159,9 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, ...){
    dev1 = nll.gev(par = THETA, fpar = lpar, dat = as.matrix(dmx))
 
   }
-  extremes(data) = ext
- out = structure(.Data = THETA,  logLik = -dev1, call = match.call(), class = 'nim', data = data)#, resid = provideResid(data, THETA), observed = data, h = h, call = match.call(), class = 'nprgev')
+
+ extremes(data) = ext
+ out = structure(.Data = THETA, logLik = -dev1, call = match.call(), class = 'nim', data = data)#, resid = provideResid(data, THETA), observed = data, h = h, call = match.call(), class = 'nprgev')
  structure(out, resid = provideResid(out))
  # out
 }

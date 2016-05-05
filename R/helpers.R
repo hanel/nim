@@ -106,27 +106,53 @@ provideResid = function(nim, data = NULL){
   res
 }
 
-sample.nim = function(nim, length = 1, type = 'parametric'){
+#' Create bootstrap sample based on fitted nim
+#'
+#' @param nim fitted model
+#' @param length number of bootstrap samples
+#' @param type one of \code{parametric_average_cor} (the default), \code{parametric} and \code{nonparametric}
+#'
+#' @return list of bootstrap samples
+#' @export sample.nim
+#'
+#' @examples
+sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_NA = TRUE){
 
   nfo = model_info(nim)
   out = list()
   obs = attr(nim, 'data')
   if (nfo$cvrt=='I') obs$I = 1
+  attr(obs, 'extremes') = c(attr(obs, 'extremes'), -which(colnames(obs)=='I'))
+  rsd = copy(obs)
 
-  if (type == 'parametric'){
+ # if (nfo$cvrt=='I') obs$I = 1
+
+  if (type %in% c('parametric', 'parametric_average_cor') ){
     #cc = cov(resid(nim, type = 'Normal')[, 2:ncol(obs)])
-    cc = cov(resid(nim, type = 'Normal')[, attr(obs, 'extremes'), drop = FALSE])
+    cc = cov(resid(nim, type = 'Normal')[, attr(obs, 'extremes'), drop = FALSE], use = 'pairwise.complete.obs')
+
+    if (type == 'parametric_average_cor'){
+      co = cov2cor(cc)
+      co[] = mean(co[upper.tri(co)], na.rm = TRUE)
+      diag(co) = 1
+      sdMat = diag(sqrt(diag(cc)))
+      cc = sdMat %*% co %*% t(sdMat)
+    }
 
     sam = function(...){
       sresid = data.table(rmvnorm(nrow(nim$REG), sigma = cc))
-      sresid = data.frame(COV = obs[[nfo$cvrt]], sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))])
-      names(sresid) = c(nfo$cvrt, names(extremes(obs)))#names(obs)
-      extremes(sresid) = attr(obs, 'extremes')
-      m = params2data(nim, sresid)
+      #sresid = data.frame(COV = obs[[nfo$cvrt]], sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))])
+      sresid = sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))]
+      rsd[, attr(obs, 'extremes')] = sresid
+
+      #names(sresid) = c(nfo$cvrt, names(extremes(obs)))#names(obs)
+      #extremes(sresid) = attr(obs, 'extremes')
+      m = params2data(nim, rsd)
       m[, value:=XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
       res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
       setnames(res, 'nfo', nfo$cvrt)
-      res
+      #res # TDD - what to do with NAs ???!!!
+      if (impute_NA) {data.table(res[, 1, with = FALSE], as.matrix(res[, -1, with = FALSE]) * (extremes(nim)/extremes(nim)))} else {res} ## simplest way - copy the NA structure from data
     }
   }
 
@@ -166,7 +192,7 @@ ad = function(sgv){
   -nr-1/nr*sum((2*1:nr-1)*log(u)+(2*nr-2*1:nr+1)*log(1-u))
 }
 
-fit = function(nim, smp, verbose = FALSE){#, pullData = TRUE){
+fit = function(nim, smp, verbose = FALSE, mc.cores = 2){#, pullData = TRUE){
 
   verb = if (!verbose) suppressMessages else identity
   RES = list()
@@ -174,13 +200,21 @@ fit = function(nim, smp, verbose = FALSE){#, pullData = TRUE){
   cl = attr(nim, 'call')
   RES[['BSP_0']] = nim
 
-  for (i in 1:length(smp)){
-    message('sample ', i)
-    cl$data = smp[[i]]
-    verb({RES[[paste0('BSP_', i)]] = eval(cl)})
-  }
+  # for (i in 1:length(smp)){
+  #   message('sample ', i)
+  #   cl$data = smp[[i]]
+  #   verb({RES[[paste0('BSP_', i)]] = eval(cl)})
+  # }
+  warning('Progress reporting of forked tasks is not supported in RStudio.')
+  r = mclapply(1:length(smp), function(i){
+       message('sample ', i)
+       cl$data = smp[[i]]
+       #verb({RES[[paste0('BSP_', i)]] = eval(cl)})
+       eval(cl)
+  }, mc.cores = 8)
+  names(r) = paste0('BSP_', 1:length(smp))
 
-  structure(RES, class = 'nims')
+  structure(c(RES, r), class = 'nims')
 
   # res = list()
   # res$results = RES

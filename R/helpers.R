@@ -121,8 +121,11 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
   nfo = model_info(nim)
   out = list()
   obs = attr(nim, 'data')
-  if (nfo$cvrt=='I') obs$I = 1
-  attr(obs, 'extremes') = c(attr(obs, 'extremes'), -which(colnames(obs)=='I'))
+  if (nfo$cvrt=='I') {
+    obs[[names(obs)[-attr(obs, 'extremes')]]] = 1
+    names(obs)[-attr(obs, 'extremes')] = 'I'
+  }#obs$I = 1
+  #attr(obs, 'extremes') = c(attr(obs, 'extremes'), -which(colnames(obs)=='I'))
   rsd = copy(obs)
 
  # if (nfo$cvrt=='I') obs$I = 1
@@ -140,7 +143,7 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
     }
 
     sam = function(...){
-      sresid = data.table(rmvnorm(nrow(nim$REG), sigma = cc))
+      sresid = data.table(rmvnorm(nrow(nim$REG), sigma = cc, method = 'chol'))
       #sresid = data.frame(COV = obs[[nfo$cvrt]], sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))])
       sresid = sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))]
       rsd[, attr(obs, 'extremes')] = sresid
@@ -159,15 +162,17 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
   # TDD opravit - zobecnit pro stacionarni model
   if (type == 'nonparametric'){
 
-    re = data.table(resid(nim, type = 'Gumbel'))
-    setkeyv(re, nfo$cvrt)
+    re = data.table(extremes(resid(nim, type = 'Gumbel')))
+    #setkeyv(re, nfo$cvrt)
     sam = function(...){
-      sresid = re[J(sample(nfo$cvrt, length(nfo$cvrt), replace = TRUE)), ]
-      sresid$COV = nim$REG$COV
-      sresid = data.frame(sresid)
-      names(sresid) = names(obs)
-      extremes(sresid) = attr(obs, 'extremes')
-      m = params2data(nim, sresid)
+      sresid = re[sample(1:nrow(re), nrow(re), replace = TRUE), ]
+      rsd[, attr(obs, 'extremes')] = sresid
+
+      #sresid$COV = nim$REG$COV
+      #sresid = data.frame(sresid)
+      #names(sresid) = names(obs)
+      #extremes(sresid) = attr(obs, 'extremes')
+      m = params2data(nim, rsd)
       m[, value:=XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
       res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
       setnames(res, 'nfo', nfo$cvrt)
@@ -205,13 +210,13 @@ fit = function(nim, smp, verbose = FALSE, mc.cores = 2){#, pullData = TRUE){
   #   cl$data = smp[[i]]
   #   verb({RES[[paste0('BSP_', i)]] = eval(cl)})
   # }
-  warning('Progress reporting of forked tasks is not supported in RStudio.')
+  message('Progress reporting of forked tasks is not supported in RStudio. To enable', immediate. = TRUE)
   r = mclapply(1:length(smp), function(i){
        message('sample ', i)
        cl$data = smp[[i]]
-       #verb({RES[[paste0('BSP_', i)]] = eval(cl)})
        eval(cl)
   }, mc.cores = 8)
+
   names(r) = paste0('BSP_', 1:length(smp))
 
   structure(c(RES, r), class = 'nims')

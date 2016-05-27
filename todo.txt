@@ -1,0 +1,1 @@
+vymyslet jak postupovat s rezidui pokud jsou ve vstupnich datech nepotrebne sloupce

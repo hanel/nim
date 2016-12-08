@@ -45,6 +45,7 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, ...){
   ext = attr(data, 'extremes')
   data = data.frame(data)
   extremes(data) = ext
+
   estSmoothReg = function(){
 
     if (h > 1) h = h / length(xcov)

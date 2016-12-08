@@ -166,7 +166,6 @@ nims = function(...){
         }
       }
   }
-
   if (is.null(names(n)) | all(is.na(names(n)))) names(n) = paste0('n', 1:length(n))
 
   nfo = sapply(n, model_info)
@@ -198,6 +197,7 @@ extract_from_nims = function(nims, FUN, return = 'data.table', melt = FALSE, sit
 residuals.nims = function(nims, return = 'data.table', melt = FALSE, ...){
   extract_from_nims(nims, resid, return, melt, ...)
 }
+
 
 regional = function(...){
   UseMethod('regional')

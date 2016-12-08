@@ -151,7 +151,7 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
       #names(sresid) = c(nfo$cvrt, names(extremes(obs)))#names(obs)
       #extremes(sresid) = attr(obs, 'extremes')
       m = params2data(nim, rsd)
-      m[, value:=XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
+      m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
       res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
       setnames(res, 'nfo', nfo$cvrt)
       #res # TDD - what to do with NAs ???!!!
@@ -259,6 +259,8 @@ AD.fitted_sample = function(fit){
   res = data.frame(BSP = rownames(res), res, row.names = NULL)
   res
 }
+
+
 
 # TDD
 # provideFitted = function(data, THETA){
@@ -368,24 +370,61 @@ extremity = function(nim, type = 'fitted', return_period = FALSE){
   d
 }
 
+# quantile.nim = function(nim, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
+#
+#   cl = match.call()
+#   qO = Vectorize(function(p){
+#     outer(XI , (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) )))
+#   }  )
+#
+#   XI = if (at_site == TRUE) (nim$XI) else (1)
+#   if (is.null(p)) p = 1 - 1 / T
+#   rg = nim$REG
+#   rg$G = exp(rg$G)
+#   res = data.frame(qO(p))
+#   #browser()
+#   names(res) = if (is.null(cl$p)) (paste0(eval(cl$T), 'yr')) else (paste0(eval(cl$p), '%'))
+#   res = data.frame(nim$REG[[1]], res, check.names = FALSE)
+#   names(res)[1] = model_info(nim)$cvrt
+#   res
+# }
+
 quantile.nim = function(nim, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
 
   cl = match.call()
   qO = Vectorize(function(p){
-    XI * (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) ))
-  }  )
+    r = data.frame(t(outer(XI , (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) )))))
+    if (model_info(nim)$cvrt == 'I') {
+      r = data.frame(I = 1, r[1, ])
+      names(r) = c(names(r)[1], names(XI))#if (!at_site) {names(r)[2] = 'regional'}
+      r
+    } else {
+      r = data.frame(nim$REG[[1]], r, check.names = FALSE)
+      names(r)[1] = model_info(nim)$cvrt
+      r
+    }
+  }, SIMPLIFY = FALSE  )
 
-  XI = if (at_site == TRUE) (nim$XI) else (1)
+  XI = if (at_site == TRUE) (nim$XI) else (structure(1, names = 'regional') )
   if (is.null(p)) p = 1 - 1 / T
   rg = nim$REG
   rg$G = exp(rg$G)
-  res = data.frame(qO(p))
-  #browser()
-  names(res) = if (is.null(cl$p)) (paste0(eval(cl$T), 'yr')) else (paste0(eval(cl$p), '%'))
-  res = data.frame(nim$REG[[1]], res, check.names = FALSE)
-  names(res)[1] = model_info(nim)$cvrt
+  res = qO(p)
+  #  browser()
+  names(res) = if (is.null(cl$p)) (paste0(eval(cl$T), 'yr')) else (paste0(eval(cl$p)*100, '%'))
+  res = rbindlist(res, idcol = 'q')
+  #res = data.frame(nim$REG[[1]], res, check.names = FALSE)
+  #names(res)[1] = model_info(nim)$cvrt
   res
-  }
+}
+
+quantile.nims = function(nims, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
+  r = lapply(nims, function(x) melt(quantile(x, p, T, at_site), id.vars = 1:2))
+  r = rbindlist(r, idcol = 'NIM')
+  r[, p := as.double(gsub('%', '', q))/100]
+  r[, T := 1/(1-p)]
+  return(copy(r))
+}
 
 detrend = function(nim, wrt = 1){
   nfo = model_info(nim)

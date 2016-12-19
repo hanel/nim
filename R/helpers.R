@@ -88,8 +88,9 @@ params2data.nim = function(nim, data = NULL){
   mxi = mxi[data.table(nim$REG), on = nfo$cvrt]
   mxi[, X:=XI0 * XI]
   m = mx[mxi, on = c(nfo$cvrt, 'ID')]
-  m[, .(eval(parse(text = nfo$cvrt)), ID, value, XI = X, G, K, S = X * exp(G))]
-
+  m = m[, .(eval(parse(text = nfo$cvrt)), ID, value, XI = X, G, K, S = X * exp(G))]
+  setnames(m, 1, nfo$cvrt)
+  m
 }
 
 
@@ -101,7 +102,9 @@ provideResid = function(nim, data = NULL){
     m[, I:=1:.N, by = ID]
   }
   m[, RESID:= (1 / K) * log ( 1 + (K / exp(G) * (value/XI - 1)  ) ) ]
-  res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, RESID)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'RESID')
+  s = m[, .(eval(parse(text = nfo$cvrt)), ID, RESID)]
+  setnames(s, 1, nfo$cvrt)
+  res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'RESID')
   setnames(res, 'nfo', nfo$cvrt)
   res
 }
@@ -152,7 +155,9 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
       #extremes(sresid) = attr(obs, 'extremes')
       m = params2data(nim, rsd)
       m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
-      res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
+      s = m[, .(eval(parse(text = nfo$cvrt)), ID, value)]
+      setnames(s, 1, nfo$cvrt)
+      res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
       setnames(res, 'nfo', nfo$cvrt)
       #res # TDD - what to do with NAs ???!!!
       if (impute_NA) {data.table(res[, 1, with = FALSE], as.matrix(res[, -1, with = FALSE]) * (extremes(nim)/extremes(nim)))} else {res} ## simplest way - copy the NA structure from data

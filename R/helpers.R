@@ -188,11 +188,13 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
 
   out = mapply(sam, 1:length, SIMPLIFY = FALSE)
   names(out) = paste0('BSP_', 1:length)
+
   out = lapply(out, function(x){
     x = data.frame(x)
     extremes(x) = attr(obs, 'extremes')
     return(x)})
-  out
+
+  c(list(BSP_0 = obs), out)
 }
 
 ad = function(sgv){
@@ -208,7 +210,7 @@ fit = function(nim, smp, verbose = FALSE, mc.cores = 2){#, pullData = TRUE){
   RES = list()
   nfo = model_info(nim)
   cl = attr(nim, 'call')
-  RES[['BSP_0']] = nim
+ # RES[['BSP_0']] = nim
 
   # for (i in 1:length(smp)){
   #   message('sample ', i)

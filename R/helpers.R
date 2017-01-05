@@ -178,8 +178,10 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
       #names(sresid) = names(obs)
       #extremes(sresid) = attr(obs, 'extremes')
       m = params2data(nim, rsd)
-      m[, value:=XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
-      res = dcast.data.table(m[, .(eval(parse(text = nfo$cvrt)), ID, value)], eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
+      m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
+      s = m[, .(eval(parse(text = nfo$cvrt)), ID, value)]
+      setnames(s, 1, nfo$cvrt)
+      res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
       setnames(res, 'nfo', nfo$cvrt)
       res
     }
@@ -449,3 +451,41 @@ detrend = function(nim, wrt = 1){
 
 
 ## TDD growth curve
+
+
+#' Draw a gumble plot from a fitted nim
+#'
+#'
+#' @param nim fitted model
+#' @param use_plotly argument specifying whether to use/or not the 'plotly' package for interactive graph
+#'
+#' @return gumble plot
+#' @export gumbelplot
+#'
+#' @examples
+#' 
+gumbelplot <- function(nim, use_plotly = TRUE) {
+  require(data.table)
+  require(evd)
+  require(ggplot2)
+  require(plotly)
+  
+  res_gp <- data.table(attributes(nim)$data)
+  res_gp <- melt(res_gp, id.var = 1)
+  res_gp <- data.table(variable = gsub('X','',names(nim$XI)), XI = nim$XI)[res_gp, on = c('variable')]
+  res_gp <- res_gp[!is.na(value), p:= (rank(value) - .3) / (length(value)+.4), by = variable]
+  res_gp <- res_gp[, val_xi := value/XI]
+  
+  gp <- ggplot(res_gp) + 
+    geom_point(aes(x=-log(-log(p)), y = val_xi), alpha = .5) + 
+    geom_line(aes(x=-log(-log(p)), y = val_xi, group = variable), alpha = .5) + 
+    stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(nim))$G[1], regional(nims(nim))$K[1]), col = 'red', lwd = 1) +
+    ylab('Value') +
+    theme_classic()
+  
+  if (use_plotly) {
+    ggplotly(gp)
+  } else {
+    print(gp)
+  }
+}

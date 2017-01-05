@@ -452,18 +452,15 @@ detrend = function(nim, wrt = 1){
 
 ## TDD growth curve
 
-
-#' Draw a gumble plot from a fitted nim
+#' Draw gumble plot from a nim object
 #'
-#'
-#' @param nim fitted model
+#' @param nim nim object
 #' @param use_plotly argument specifying whether to use/or not the 'plotly' package for interactive graph
 #'
-#' @return gumble plot
+#' @return 
 #' @export gumbelplot
 #'
 #' @examples
-#' 
 gumbelplot <- function(nim, use_plotly = TRUE) {
   require(data.table)
   require(evd)

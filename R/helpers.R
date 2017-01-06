@@ -461,6 +461,10 @@ detrend = function(nim, wrt = 1){
 #' @export gumbelplot
 #'
 #' @examples
+#' data('precip_max')
+#' extremes(precip_max) = 2:ncol(precip_max)
+#' n <- nim( ~1, data = precip_max)
+#' gumbelplot(n)
 gumbelplot <- function(nim, use_plotly = TRUE) {
   require(data.table)
   require(evd)
@@ -484,5 +488,54 @@ gumbelplot <- function(nim, use_plotly = TRUE) {
     ggplotly(gp)
   } else {
     print(gp)
+  }
+}
+
+
+#' Draw growth cruve from a fitted and sapmled nim object
+#'
+#' @param f fitted and sapmled nim object
+#' @param ribbon_1_probs probabilites interval of the 1st ribbon
+#' @param ribbon_2_probs probabilites interval of the 2nd ribbon
+#' @param use_plotly argument specifying whether to use/or not the 'plotly' package for interactive graph
+#'
+#' @return
+#' @export growthcurve
+#'
+#' @examples
+#' data('precip_max')
+#' extremes(precip_max) = 2:ncol(precip_max)
+#' n <- nim( ~1, data = precip_max)
+#' smp <- sample(n, length = 50)
+#' f <- fit(n, smp, mc.cores = 4)
+#' growthcurve(f)
+#' growthcurve(f, c(.10, .90), c(.40,.60))
+growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.75), use_plotly = TRUE) {
+  require(data.table)
+  require(evd)
+  require(ggplot2)
+  require(plotly)
+  
+  prbs <- sort(c(ribbon_1_probs, ribbon_2_probs))
+  
+  qntl <- quantile(f, seq(.01,.99,.01), at_site = FALSE)
+  
+  res_gc <- qntl[, .(quantile = quantile(value, probs = prbs)), by = p]
+  res_gc <- data.table(cbind(res_gc, c(paste0('q_',prbs[1]),paste0('q_',prbs[2]),paste0('q_',prbs[3]),paste0('q_',prbs[4]))))
+  names(res_gc) <- c('p', 'value', 'q')
+  res_gc[, p := -log(-log(p))]
+  res_gc <- dcast(res_gc, p ~ q, value.var = 'value')
+  
+  gc <- ggplot(res_gc) +
+    geom_ribbon(aes_string(x = colnames(res_gc)[1], ymin = colnames(res_gc)[2], ymax = colnames(res_gc)[5]), fill = 'grey70') +
+    geom_ribbon(aes_string(x = colnames(res_gc)[1], ymin = colnames(res_gc)[3], ymax = colnames(res_gc)[4]), fill = 'grey50') +
+    stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(f[[1]]))$G[1], regional(nims(f[[1]]))$K[1]), col = 'red', lwd = 1) +
+    theme_classic()
+  ggplotly(gc)
+  
+  if (use_plotly) {
+    ggplotly(gc)
+  } else {
+    print(gc)
   }
 }

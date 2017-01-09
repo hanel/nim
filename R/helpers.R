@@ -466,10 +466,6 @@ detrend = function(nim, wrt = 1){
 #' n <- nim( ~1, data = precip_max)
 #' gumbelplot(n)
 gumbelplot <- function(nim, use_plotly = TRUE) {
-  require(data.table)
-  require(evd)
-  require(ggplot2)
-  require(plotly)
 
   res_gp <- data.table(attributes(nim)$data)
   res_gp <- melt(res_gp, id.var = 1)
@@ -481,10 +477,10 @@ gumbelplot <- function(nim, use_plotly = TRUE) {
     geom_point(aes(x=-log(-log(p)), y = val_xi), alpha = .5) +
     geom_line(aes(x=-log(-log(p)), y = val_xi, group = variable), alpha = .5) +
     stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(nim))$G[1], regional(nims(nim))$K[1]), col = 'red', lwd = 1) +
-    ylab('Value') +
-    theme_classic()
+    ylab('Value')
 
   if (use_plotly) {
+    require(plotly)
     ggplotly(gp)
   } else {
     print(gp)
@@ -511,10 +507,6 @@ gumbelplot <- function(nim, use_plotly = TRUE) {
 #' growthcurve(f)
 #' growthcurve(f, c(.10, .90), c(.40,.60))
 growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.75), use_plotly = TRUE) {
-  require(data.table)
-  require(evd)
-  require(ggplot2)
-  require(plotly)
 
   prbs <- sort(c(ribbon_1_probs, ribbon_2_probs))
 
@@ -529,13 +521,14 @@ growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.
   gc <- ggplot(res_gc) +
     geom_ribbon(aes_string(x = colnames(res_gc)[1], ymin = colnames(res_gc)[2], ymax = colnames(res_gc)[5]), fill = 'grey70') +
     geom_ribbon(aes_string(x = colnames(res_gc)[1], ymin = colnames(res_gc)[3], ymax = colnames(res_gc)[4]), fill = 'grey50') +
-    stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(f[[1]]))$G[1], regional(nims(f[[1]]))$K[1]), col = 'red', lwd = 1) +
-    theme_classic()
+    stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(f[[1]]))$G[1], regional(nims(f[[1]]))$K[1]), col = 'red', lwd = 1)
 
 
   if (use_plotly) {
+    require(plotly)
     ggplotly(gc)
   } else {
     print(gc)
   }
+
 }

@@ -465,7 +465,7 @@ detrend = function(nim, wrt = 1){
 #' extremes(precip_max) = 2:ncol(precip_max)
 #' n <- nim( ~1, data = precip_max)
 #' gumbelplot(n)
-gumbelplot <- function(nim, use_plotly = TRUE) {
+gumbelplot <- function(nim, use_plotly = if ('plotly' %in% row.names(installed.packages())) {TRUE} else {FALSE}) {
 
   res_gp <- data.table(attributes(nim)$data)
   res_gp <- melt(res_gp, id.var = 1)
@@ -483,7 +483,7 @@ gumbelplot <- function(nim, use_plotly = TRUE) {
     require(plotly)
     ggplotly(gp)
   } else {
-    print(gp)
+    return(gp)
   }
 }
 
@@ -506,7 +506,7 @@ gumbelplot <- function(nim, use_plotly = TRUE) {
 #' f <- fit(n, smp, mc.cores = 4)
 #' growthcurve(f)
 #' growthcurve(f, c(.10, .90), c(.40,.60))
-growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.75), use_plotly = TRUE) {
+growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.75), use_plotly = if ('plotly' %in% row.names(installed.packages())) {TRUE} else {FALSE}) {
 
   prbs <- sort(c(ribbon_1_probs, ribbon_2_probs))
 
@@ -528,7 +528,6 @@ growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.
     require(plotly)
     ggplotly(gc)
   } else {
-    print(gc)
+    return(gc)
   }
-
 }

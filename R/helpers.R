@@ -457,7 +457,7 @@ detrend = function(nim, wrt = 1){
 #' @param nim nim object
 #' @param use_plotly argument specifying whether to use/or not the 'plotly' package for interactive graph
 #'
-#' @return 
+#' @return
 #' @export gumbelplot
 #'
 #' @examples
@@ -470,20 +470,20 @@ gumbelplot <- function(nim, use_plotly = TRUE) {
   require(evd)
   require(ggplot2)
   require(plotly)
-  
+
   res_gp <- data.table(attributes(nim)$data)
   res_gp <- melt(res_gp, id.var = 1)
   res_gp <- data.table(variable = gsub('X','',names(nim$XI)), XI = nim$XI)[res_gp, on = c('variable')]
   res_gp <- res_gp[!is.na(value), p:= (rank(value) - .3) / (length(value)+.4), by = variable]
   res_gp <- res_gp[, val_xi := value/XI]
-  
-  gp <- ggplot(res_gp) + 
-    geom_point(aes(x=-log(-log(p)), y = val_xi), alpha = .5) + 
-    geom_line(aes(x=-log(-log(p)), y = val_xi, group = variable), alpha = .5) + 
+
+  gp <- ggplot(res_gp) +
+    geom_point(aes(x=-log(-log(p)), y = val_xi), alpha = .5) +
+    geom_line(aes(x=-log(-log(p)), y = val_xi, group = variable), alpha = .5) +
     stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(nim))$G[1], regional(nims(nim))$K[1]), col = 'red', lwd = 1) +
     ylab('Value') +
     theme_classic()
-  
+
   if (use_plotly) {
     ggplotly(gp)
   } else {
@@ -515,24 +515,24 @@ growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.
   require(evd)
   require(ggplot2)
   require(plotly)
-  
+
   prbs <- sort(c(ribbon_1_probs, ribbon_2_probs))
-  
+
   qntl <- quantile(f, seq(.01,.99,.01), at_site = FALSE)
-  
+
   res_gc <- qntl[, .(quantile = quantile(value, probs = prbs)), by = p]
   res_gc <- data.table(cbind(res_gc, c(paste0('q_',prbs[1]),paste0('q_',prbs[2]),paste0('q_',prbs[3]),paste0('q_',prbs[4]))))
   names(res_gc) <- c('p', 'value', 'q')
   res_gc[, p := -log(-log(p))]
   res_gc <- dcast(res_gc, p ~ q, value.var = 'value')
-  
+
   gc <- ggplot(res_gc) +
     geom_ribbon(aes_string(x = colnames(res_gc)[1], ymin = colnames(res_gc)[2], ymax = colnames(res_gc)[5]), fill = 'grey70') +
     geom_ribbon(aes_string(x = colnames(res_gc)[1], ymin = colnames(res_gc)[3], ymax = colnames(res_gc)[4]), fill = 'grey50') +
     stat_function(fun = function(x)qgev(exp(-exp(-x)), 1, regional(nims(f[[1]]))$G[1], regional(nims(f[[1]]))$K[1]), col = 'red', lwd = 1) +
     theme_classic()
-  ggplotly(gc)
-  
+
+
   if (use_plotly) {
     ggplotly(gc)
   } else {

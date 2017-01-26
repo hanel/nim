@@ -1,11 +1,11 @@
 Package: nim
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Non-stationary Index-flood Models (nims) with smooth and parametric trends
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Martin Hanel
+Maintainer: Martin Hanel <hanel@fzp.czu.cz>
+Description: The nim package provides functions for fitting, uncertainty and goodness-of-fit assessment of Non-stationary Index-flood Models (nims) with smooth or parametric trends in the parameters of the GEV model together with some classes and methods for easy manipulation and assessment of results.
+License: GPL
 LazyData: TRUE
 LinkingTo: Rcpp
 Imports:
@@ -15,5 +15,7 @@ Depends:
     reshape2,
     parallel,
     mvtnorm,
-    lmom
+    lmom,
+    ggplot2,
+    evd
 RoxygenNote: 5.0.1

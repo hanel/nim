@@ -206,14 +206,16 @@ ad = function(sgv){
   -nr-1/nr*sum((2*1:nr-1)*log(u)+(2*nr-2*1:nr+1)*log(1-u))
 }
 
-fit = function(nim, smp, verbose = FALSE, mc.cores = 2){#, pullData = TRUE){
-
+fit = function(nim, smp, verbose = FALSE){#, mc.cores = 2, pullData = TRUE){
+  
+  if( .Platform$OS.type == "windows" ){ncores = 1} else ncores = detectCores(FALSE) # or (TRUE) to use logical CPUs
+  
   verb = if (!verbose) suppressMessages else identity
   RES = list()
   nfo = model_info(nim)
   cl = attr(nim, 'call')
- # RES[['BSP_0']] = nim
-
+  # RES[['BSP_0']] = nim
+  
   # for (i in 1:length(smp)){
   #   message('sample ', i)
   #   cl$data = smp[[i]]
@@ -221,15 +223,15 @@ fit = function(nim, smp, verbose = FALSE, mc.cores = 2){#, pullData = TRUE){
   # }
   message('Progress reporting of forked tasks is not supported in RStudio. To enable', immediate. = TRUE)
   r = mclapply(1:length(smp), function(i){
-       message('sample ', i)
-       cl$data = smp[[i]]
-       eval(cl)
-  }, mc.cores = 8)
-
-  names(r) = paste0('BSP_', 1:length(smp))
-
+    message('sample ', i - 1)
+    cl$data = smp[[i]]
+    eval(cl)
+  }, mc.cores = ncores)
+  
+  names(r) = paste0('BSP_', 0:(length(smp) - 1))
+  
   structure(c(RES, r), class = 'nims')
-
+  
   # res = list()
   # res$results = RES
   # res[[nfo$cvrt]] = RES[[1]]$REG[[nfo$cvrt]]

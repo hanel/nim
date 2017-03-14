@@ -119,84 +119,151 @@ provideResid = function(nim, data = NULL){
 #' @export sample.nim
 #'
 #' @examples
-sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_NA = TRUE){
-
-  nfo = model_info(nim)
-  out = list()
-  obs = attr(nim, 'data')
-  if (nfo$cvrt=='I') {
-    obs[[names(obs)[-attr(obs, 'extremes')]]] = 1
-    names(obs)[-attr(obs, 'extremes')] = 'I'
-  }#obs$I = 1
-  #attr(obs, 'extremes') = c(attr(obs, 'extremes'), -which(colnames(obs)=='I'))
-  rsd = copy(obs)
-
- # if (nfo$cvrt=='I') obs$I = 1
-
-  if (type %in% c('parametric', 'parametric_average_cor') ){
-    #cc = cov(resid(nim, type = 'Normal')[, 2:ncol(obs)])
-    cc = cov(resid(nim, type = 'Normal')[, attr(obs, 'extremes'), drop = FALSE], use = 'pairwise.complete.obs')
-
-    if (type == 'parametric_average_cor'){
+sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_NA = FALSE, include_nim = TRUE){
+  
+  if (type %in% c('parametric', 'parametric_average_cor', 'nonparametric')) {
+    
+    nfo = model_info(nim)
+    out = list()
+    obs = attr(nim, 'data')
+    if (nfo$cvrt=='I') {
+      obs[[names(obs)[-attr(obs, 'extremes')]]] = 1
+      names(obs)[-attr(obs, 'extremes')] = 'I'
+    }#obs$I = 1
+    #attr(obs, 'extremes') = c(attr(obs, 'extremes'), -which(colnames(obs)=='I'))
+    rsd = copy(obs)
+    
+    # if (nfo$cvrt=='I') obs$I = 1
+    
+    if (type %in% c('parametric', 'parametric_average_cor') ){
+      #cc = cov(resid(nim, type = 'Normal')[, 2:ncol(obs)])
+      cc = cov(resid(nim, type = 'Normal')[, attr(obs, 'extremes'), drop = FALSE], use = 'pairwise.complete.obs')
+      
+      if (type == 'parametric_average_cor'){
+        co = cov2cor(cc)
+        co[] = mean(co[upper.tri(co)], na.rm = TRUE)
+        diag(co) = 1
+        sdMat = diag(sqrt(diag(cc)))
+        cc = sdMat %*% co %*% t(sdMat)
+      }
+      
+      sam = function(...){
+        sresid = data.table(rmvnorm(nrow(nim$REG), sigma = cc, method = 'chol'))
+        #sresid = data.frame(COV = obs[[nfo$cvrt]], sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))])
+        sresid = sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))]
+        rsd[, attr(obs, 'extremes')] = sresid
+        
+        #names(sresid) = c(nfo$cvrt, names(extremes(obs)))#names(obs)
+        #extremes(sresid) = attr(obs, 'extremes')
+        m = params2data(nim, rsd)
+        m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
+        s = m[, .(eval(parse(text = nfo$cvrt)), ID, value)]
+        setnames(s, 1, nfo$cvrt)
+        res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
+        setnames(res, 'nfo', nfo$cvrt)
+        #res # TDD - what to do with NAs ???!!!
+        if (impute_NA) {data.table(res[, 1, with = FALSE], as.matrix(res[, -1, with = FALSE]) * (extremes(nim)/extremes(nim)))} else {res} ## simplest way - copy the NA structure from data
+      }
+    }
+    
+    # TDD opravit - zobecnit pro stacionarni model
+    if (type == 'nonparametric'){
+      
+      re = data.table(extremes(resid(nim, type = 'Gumbel')))
+      #setkeyv(re, nfo$cvrt)
+      sam = function(...){
+        sresid = re[sample(1:nrow(re), nrow(re), replace = TRUE), ]
+        rsd[, attr(obs, 'extremes')] = sresid
+        
+        #sresid$COV = nim$REG$COV
+        #sresid = data.frame(sresid)
+        #names(sresid) = names(obs)
+        #extremes(sresid) = attr(obs, 'extremes')
+        m = params2data(nim, rsd)
+        m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
+        s = m[, .(eval(parse(text = nfo$cvrt)), ID, value)]
+        setnames(s, 1, nfo$cvrt)
+        res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
+        setnames(res, 'nfo', nfo$cvrt)
+        res
+      }
+      
+    }
+    
+    out = mapply(sam, 1:length, SIMPLIFY = FALSE)
+    names(out) = paste0('BSP_', 1:length)
+    
+    out = lapply(out, function(x){
+      x = data.frame(x)
+      extremes(x) = attr(obs, 'extremes')
+      return(x)})
+    
+    if(include_nim) {
+      c(list(BSP_0 = obs), out)
+    } else {
+      out
+    }
+  }
+  if (type %in% c('NA_parametric_average_cor', 'NA_nonparametric')) {
+    if (type == 'NA_parametric_average_cor') {
+      
+      obs <- attr(nim, 'data')
+      rsd <- copy(obs)
+      i <- 1:length
+      cc = cov(resid(nim, type = 'Normal')[, attr(obs, 'extremes'), drop = FALSE], use = 'pairwise.complete.obs')
       co = cov2cor(cc)
-      co[] = mean(co[upper.tri(co)], na.rm = TRUE)
-      diag(co) = 1
-      sdMat = diag(sqrt(diag(cc)))
-      cc = sdMat %*% co %*% t(sdMat)
+      mc = mean(co[upper.tri(co)], na.rm = TRUE)
+      out <- mapply(function(i) {
+        m <- obs[sample(1:nrow(obs), nrow(obs), replace = TRUE), ]
+        m[,1] <- NULL
+        for(j in 1:dim(m)[1]) {
+          r <- m[j, !is.na(m[j,])] 
+          if(length(r) == 0) {
+            m[j,] <- NA
+          } else {
+            co = matrix(mc, nrow = length(r), ncol = length(r))
+            diag(co) <- 1
+            sdMat = diag(sqrt(diag(cc[!is.na(m[j,]), !is.na(m[j,])])))
+            ccc = sdMat %*% co %*% t(sdMat)
+            m[j, !is.na(m[j,])] <- -log(-log(pnorm(rmvnorm(1, sigma = ccc, method = 'chol')))) 
+          }
+        }
+        rsd[, attr(obs, 'extremes')] = m
+        m = params2data(nim, rsd)
+        m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
+        m <- dcast(m, I ~ ID)
+        m$I <- NULL
+        m <- cbind(obs[,1],m)
+        names(m[1]) <- names(obs[1])
+        attributes(m)$extremes <- 2:dim(m)[2]
+        return(m)
+      }, i, SIMPLIFY = FALSE)
+      names(out) <- paste0('BSP_', i)
+      
+      if(include_nim) {
+        c(list(BSP_0 = obs), out)
+      } else {
+        out
+      }
     }
-
-    sam = function(...){
-      sresid = data.table(rmvnorm(nrow(nim$REG), sigma = cc, method = 'chol'))
-      #sresid = data.frame(COV = obs[[nfo$cvrt]], sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))])
-      sresid = sresid[, sapply(.SD, function(xx) (-log(-log(pnorm(xx) ))))]
-      rsd[, attr(obs, 'extremes')] = sresid
-
-      #names(sresid) = c(nfo$cvrt, names(extremes(obs)))#names(obs)
-      #extremes(sresid) = attr(obs, 'extremes')
-      m = params2data(nim, rsd)
-      m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
-      s = m[, .(eval(parse(text = nfo$cvrt)), ID, value)]
-      setnames(s, 1, nfo$cvrt)
-      res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
-      setnames(res, 'nfo', nfo$cvrt)
-      #res # TDD - what to do with NAs ???!!!
-      if (impute_NA) {data.table(res[, 1, with = FALSE], as.matrix(res[, -1, with = FALSE]) * (extremes(nim)/extremes(nim)))} else {res} ## simplest way - copy the NA structure from data
+    if (type == 'NA_nonparametric') {
+      
+      obs <- attr(nim, 'data')
+      i <- 1:length
+      out <- mapply(function(i) {
+        m <- obs[sample(1:nrow(obs), nrow(obs), replace = TRUE), ]
+        m[,1] <- obs[,1]
+        return(m)
+      }, i, SIMPLIFY = FALSE)
+      names(out) <- paste0('BSP_', i)
+      
+      if(include_nim) {
+        c(list(BSP_0 = obs), out)
+      } else {
+        out
+      }
     }
   }
-
-  # TDD opravit - zobecnit pro stacionarni model
-  if (type == 'nonparametric'){
-
-    re = data.table(extremes(resid(nim, type = 'Gumbel')))
-    #setkeyv(re, nfo$cvrt)
-    sam = function(...){
-      sresid = re[sample(1:nrow(re), nrow(re), replace = TRUE), ]
-      rsd[, attr(obs, 'extremes')] = sresid
-
-      #sresid$COV = nim$REG$COV
-      #sresid = data.frame(sresid)
-      #names(sresid) = names(obs)
-      #extremes(sresid) = attr(obs, 'extremes')
-      m = params2data(nim, rsd)
-      m[, value := XI * (1 + exp(G) * ( (exp(K * value) -1) / K ) )]
-      s = m[, .(eval(parse(text = nfo$cvrt)), ID, value)]
-      setnames(s, 1, nfo$cvrt)
-      res = dcast.data.table(s, eval(parse(text = nfo$cvrt)) ~ ID, value.var = 'value')
-      setnames(res, 'nfo', nfo$cvrt)
-      res
-    }
-
-  }
-
-  out = mapply(sam, 1:length, SIMPLIFY = FALSE)
-  names(out) = paste0('BSP_', 1:length)
-
-  out = lapply(out, function(x){
-    x = data.frame(x)
-    extremes(x) = attr(obs, 'extremes')
-    return(x)})
-
-  c(list(BSP_0 = obs), out)
 }
 
 ad = function(sgv){

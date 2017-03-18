@@ -273,7 +273,7 @@ ad = function(sgv){
   -nr-1/nr*sum((2*1:nr-1)*log(u)+(2*nr-2*1:nr+1)*log(1-u))
 }
 
-fit = function(nim, smp, verbose = FALSE, use_MC = TRUE){#, mc.cores = 2, pullData = TRUE){
+fit = function(nim, smp, verbose = FALSE, use_MC = TRUE, original = TRUE){#, mc.cores = 2, pullData = TRUE){
   
   if( .Platform$OS.type == "windows" ){ncores = 1} else ncores = detectCores(FALSE) # or (TRUE) to use logical CPUs
   
@@ -301,8 +301,12 @@ fit = function(nim, smp, verbose = FALSE, use_MC = TRUE){#, mc.cores = 2, pullDa
       cl$data = smp[[i]]
       eval(cl)})
   }
-
-  names(r) = paste0('BSP_', 0:(length(smp) - 1))
+  
+  if(original) {
+    names(r) = paste0('BSP_', 0:(length(smp) - 1))
+  } else {
+    names(r) = paste0('BSP_', 1:length(smp))
+  }
   
   structure(c(RES, r), class = 'nims')
   

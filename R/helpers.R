@@ -199,9 +199,9 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
       return(x)})
     
     if(include_nim) {
-      c(list(BSP_0 = obs), out)
+      return(c(list(BSP_0 = obs), out))
     } else {
-      out
+      return(out)
     }
   }
   if (type %in% c('NA_parametric_average_cor', 'NA_nonparametric')) {
@@ -241,9 +241,9 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
       names(out) <- paste0('BSP_', i)
       
       if(include_nim) {
-        c(list(BSP_0 = obs), out)
+        return(c(list(BSP_0 = obs), out))
       } else {
-        out
+        return(out)
       }
     }
     if (type == 'NA_nonparametric') {
@@ -258,9 +258,9 @@ sample.nim = function(nim, length = 1, type = 'parametric_average_cor', impute_N
       names(out) <- paste0('BSP_', i)
       
       if(include_nim) {
-        c(list(BSP_0 = obs), out)
+        return(c(list(BSP_0 = obs), out))
       } else {
-        out
+        return(out)
       }
     }
   }

@@ -15,6 +15,8 @@ NULL
 #' @param data data.frame including the covariate and the extremes to be fitted
 #' @param method method used for the parameter optimization see ?optim
 #' @param tol minimum improvement of the log-likelihood between the iteration steps, if the difference between two succesive iteration steps is lower, the iteration ends
+#' @param try_shape a vector of initial shape parameters to be tried in the case that default initial parameters based on l-moments fail
+#' @param force (logical) indicates whether to try the initial shape parameters from \code{try_shape} also in the case that the fitting converges (note that somethimes change in initial parameters leads to different optimum)
 #' @param ... other parameters passed to \code{optim(control = list(...))}
 #'
 #' @return Object of class \link{nim} - i.e. simply

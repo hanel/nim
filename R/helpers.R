@@ -477,35 +477,74 @@ extremity = function(nim, type = 'fitted', return_period = FALSE){
 #   names(res)[1] = model_info(nim)$cvrt
 #   res
 # }
+############ older version of quantile.nim
+# quantile.nim = function(nim, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
+# 
+#   cl = match.call()
+#   qO = Vectorize(function(p){
+#     r = data.frame(t(outer(XI , (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) )))))
+#     if (model_info(nim)$cvrt == 'I') {
+#       r = data.frame(I = 1, r[1, ])
+#       names(r) = c(names(r)[1], names(XI))#if (!at_site) {names(r)[2] = 'regional'}
+#       r
+#     } else {
+#       r = data.frame(nim$REG[[1]], r, check.names = FALSE)
+#       names(r)[1] = model_info(nim)$cvrt
+#       r
+#     }
+#   }, SIMPLIFY = FALSE  )
+# 
+#   XI = if (at_site == TRUE) (nim$XI) else (regional(nim)$XI)
+#   if (is.null(p)) p = 1 - 1 / T
+#   rg = nim$REG
+#   rg$G = exp(rg$G)
+#   res = qO(p)
+#   #  browser()
+#   names(res) = if (is.null(cl$p)) (paste0(eval(cl$T), 'yr')) else (paste0(eval(cl$p)*100, '%'))
+#   res = rbindlist(res, idcol = 'q')
+#   #res = data.frame(nim$REG[[1]], res, check.names = FALSE)
+#   #names(res)[1] = model_info(nim)$cvrt
+#   res
+# }
+############
 
-quantile.nim = function(nim, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
-
+quantile.nim <- function(nim, p = NULL, Tm = c(2, 5, 10, 50), at_site = TRUE){
+  
   cl = match.call()
   qO = Vectorize(function(p){
-    r = data.frame(t(outer(XI , (1 - rg$G/rg$K * (1 - ( - log(p) ) ^ (-rg$K) )))))
+    r = data.frame(XI * (1 - G / K * (1 - ( - log(p) ) ^ (-K) )))
     if (model_info(nim)$cvrt == 'I') {
       r = data.frame(I = 1, r[1, ])
       names(r) = c(names(r)[1], names(XI))#if (!at_site) {names(r)[2] = 'regional'}
-      r
     } else {
       r = data.frame(nim$REG[[1]], r, check.names = FALSE)
       names(r)[1] = model_info(nim)$cvrt
-      r
+      names(r)[2:ncol(r)] = if (at_site) (names(nim$XI)) else ('regional')
     }
-  }, SIMPLIFY = FALSE  )
-
-  XI = if (at_site == TRUE) (nim$XI) else (structure(1, names = 'regional') )
-  if (is.null(p)) p = 1 - 1 / T
-  rg = nim$REG
-  rg$G = exp(rg$G)
+    return(r)
+  }, SIMPLIFY = FALSE)
+  
+  if (is.null(p)) p = 1 - 1 / Tm
+  
+  if(at_site) {
+    XI <- outer(regional(nim)$XI, atsite(nim))
+    G <- matrix(data = rep(x = exp(nim$REG$G), times = dim(XI)[2]),
+                nrow = dim(XI)[1])
+    K <- matrix(data = rep(x = nim$REG$K, times = dim(XI)[2]),
+                nrow = dim(XI)[1])
+  } else {
+    XI <- regional(nim)$XI
+    G <- exp(nim$REG$G)
+    K <- nim$REG$K
+  }
+  
   res = qO(p)
-  #  browser()
-  names(res) = if (is.null(cl$p)) (paste0(eval(cl$T), 'yr')) else (paste0(eval(cl$p)*100, '%'))
-  res = rbindlist(res, idcol = 'q')
-  #res = data.frame(nim$REG[[1]], res, check.names = FALSE)
-  #names(res)[1] = model_info(nim)$cvrt
+  names(res) = p
+  res = rbindlist(res, idcol = 'p')
   res
 }
+
+
 
 quantile.nims = function(nims, p = NULL, T = c(2, 5, 10, 50), at_site = TRUE){
   r = lapply(nims, function(x) melt(quantile(x, p, T, at_site), id.vars = 1:2))
@@ -548,8 +587,10 @@ detrend = function(nim, wrt = 1){
 gumbelplot <- function(nim, use_plotly = if ('plotly' %in% row.names(installed.packages())) {TRUE} else {FALSE}) {
 
   res_gp <- data.table(attributes(nim)$data)
+  # names(attr(res_gp, 'data')) <- gsub('X','', names(attr(res_gp, 'data')))
+  
   res_gp <- melt(res_gp, id.var = 1)
-  res_gp <- data.table(variable = gsub('X','',names(nim$XI)), XI = nim$XI)[res_gp, on = c('variable')]
+  res_gp <- data.table(variable = names(nim$XI), XI = nim$XI)[res_gp, on = c('variable')]
   res_gp <- res_gp[!is.na(value), p:= (rank(value) - .3) / (length(value)+.4), by = variable]
   res_gp <- res_gp[, val_xi := value/XI]
 

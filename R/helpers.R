@@ -652,3 +652,57 @@ growthcurve <- function(f, ribbon_1_probs = c(.05,.95), ribbon_2_probs = c(.25,.
     return(gc)
   }
 }
+
+comparenims_LLRsampling = function(nim1, nim2, nsamples){#compare 2 nims - sampling
+  
+  if(as.character(model_info(nim1)$type=="p")){ #sampling from linear model is preferred if available
+    n1=nim1
+    n2=nim2
+  } 
+  else{ 
+    n1=nim2
+    n2=nim1
+  }
+  
+  ll = lapply(1:nsamples, function(i){ #compute LLRs (see Padoan and Wand 2008, eq. 4)
+    n1_sa = sample(n1, include_nim = FALSE)
+    
+    n1_fit = fit(n1, n1_sa, verbose = FALSE)
+    n2_fit = fit(n2, n1_sa, verbose = FALSE)
+    
+    message('Sample ', i, " fitted.")
+    
+    ll=2*(attributes(n2_fit[[1]])$logLik - attributes(n1_fit[[1]])$logLik)
+  })
+  names(ll) = paste0('BSP_', 1:nsamples)
+  
+  LLR=data.table(sample=attributes(ll)$names, LLR=as.numeric(as.matrix(ll)[,1]))
+  
+  LLR=rbind(LLR, data.table(sample="BSP_0", LLR=2*(attributes(n2)$logLik - attributes(n1)$logLik))) #add observed data as BSP_0
+  LLR[, type := ifelse(sample == "BSP_0", "observ", "sample")]
+  
+  LLR[,IF:=as.numeric(LLR>LLR[type=="observ"])] #indicator function
+  LLR[,pval:=sum(IF)/nsamples] # (Padoan and Wand 2008, eq. p-value)
+  
+  return(LLR)
+}
+
+comparenims_LLRshow = function(LLRsample, ggplot=TRUE){#compare 2 nims - show results 
+  
+  res = lapply(1:3, function(x) x=NULL)
+  names(res) = list('p_value','LLR_obs','LLR_samp')
+  
+  res$p_value=as.numeric(LLRsample$pval[1])
+  res$LLR_obs=as.numeric(LLRsample[type=="observ"]$LLR)
+  res$LLR_samp=as.numeric(LLRsample[type=="sample"]$LLR)
+  
+  attr(res,'summary') = summary(LLRsample[,list(sample=sample[type!="observ"], sample_LLR=LLR[type!="observ"])]) #summary for samples as attribute 
+  
+  if(ggplot==TRUE){ #ggplot results as attribute
+    ggp = ggplot(LLRsample[sample!="BSP_0"],aes(x=LLR))+stat_density(aes(colour=type),fill="lightgrey",alpha=0.6)+geom_point(data=LLRsample[sample=="BSP_0"],aes(x=LLR,y=0,colour=type),size=3)+geom_vline(data=LLRsample[sample=="BSP_0"],aes(xintercept=LLR, colour=type))+scale_x_continuous("Likelihood ratio (LLR)")+ggtitle("Likelihood ratio test")+scale_color_manual(labels = c("observation", "samples"), values = c("blue", "red"))
+    attr(res,'plot') = ggp
+    return(res)
+  }
+  else return(res)
+}
+                  

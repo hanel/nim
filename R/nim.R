@@ -173,6 +173,7 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, try_sha
 
  cl = call('inim', formula = formula, data = data, method = method, tol = tol)
  n = eval(cl)
+ attr(n, 'call') = call('nim', formula = formula, data = data, method = method, tol = tol, try_shape = try_shape)
 
  if ( (all(!is.na(try_shape)) & logLik(n)==-1e20) |  (all(!is.na(try_shape)) & force==TRUE)) {
 
@@ -185,8 +186,12 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, try_sha
    }
    wh = which.max(sapply(N, logLik))
    n = N[[wh]]
+   attr(n, 'call') = call('nim', formula = formula, data = data, method = method, tol = tol, try_shape = try_shape[wh])
  }
+
  if (logLik(n)==-1e20) warning('Loglikelihood not defined!')
+
  n
+
 }
 

@@ -171,10 +171,11 @@ nim = function(formula =   ~ 1, data, method = 'Nelder-Mead', tol = 0.1, try_sha
  structure(out, resid = provideResid(out))
   }
 
- cl = call('inim', formula = formula, data = data, method = method, tol = tol, ini_shape = ini_shape)
+ cl = call('inim', formula = formula, data = data, method = method, tol = tol)
  n = eval(cl)
 
  if ( (all(!is.na(try_shape)) & logLik(n)==-1e20) |  (all(!is.na(try_shape)) & force==TRUE)) {
+
    N = list()
 
    for (i in try_shape){

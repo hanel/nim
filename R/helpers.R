@@ -84,7 +84,7 @@ params2data.nim = function(nim, data = NULL){
   xi = data.table(COV = data[[nfo$cvrt]], nim$.xi())
   setnames(xi, names(xi), names(data))
  # setnames(xi, nfo$cvrt, 'COV')
-  mxi = melt(xi, id.vars = nfo$cvrt, variable.name = 'ID', value.name = 'XI0')
+  mxi = melt.data.table(xi, id.vars = nfo$cvrt, variable.name = 'ID', value.name = 'XI0')
   mxi = mxi[data.table(nim$REG), on = nfo$cvrt]
   mxi[, X:=XI0 * XI]
   m = mx[mxi, on = c(nfo$cvrt, 'ID')]

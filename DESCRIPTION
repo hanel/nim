@@ -12,7 +12,6 @@ Imports:
     Rcpp
 Depends:
     data.table,
-    reshape2,
     parallel,
     mvtnorm,
     lmom,
